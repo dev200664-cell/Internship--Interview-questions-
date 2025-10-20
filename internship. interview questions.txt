@@ -1,0 +1,93 @@
+1) What is an open port?
+An open port is a logical communication endpoint on a host (identified by a port number 0–65535) where a service is listening for network connections. For example, a web server typically listens on TCP port 80 or 443. If a port is “open,” a remote host can connect to it (subject to network rules) and interact with the service bound to that port.
+
+2) How does Nmap perform a TCP SYN scan?
+A TCP SYN scan (often -sS in Nmap) works like this:
+
+Nmap sends a TCP packet with only the SYN flag set to the target port (this starts the TCP handshake).
+
+If the target responds with SYN/ACK, the port is considered open (Nmap usually sends an RST immediately after to avoid completing the handshake — that’s why it’s called a “half-open” or “stealth” scan).
+
+If the target responds with RST, the port is closed.
+
+If there’s no response or an ICMP unreachable is returned, the port may be filtered (blocked by a firewall).
+SYN scans are fast and noisy-moderate but sometimes less likely to appear in simple connection logs because a full connection is not completed.
+
+3) What risks are associated with open ports?
+Open ports expose services which can introduce risk if the service:
+
+Has vulnerabilities (unpatched software, old versions).
+
+Is misconfigured (weak auth, default credentials).
+
+Exposes sensitive data or privileged actions.
+
+Is reachable from untrusted networks (e.g., management interfaces exposed to the Internet).
+Attackers can discover open ports and probe services for exploits, brute-force credentials, or use open services as pivot points. Open ports also increase the attack surface and raise the chance of automated attacks (worms, scanners, bots).
+
+4) Explain the difference between TCP and UDP scanning.
+
+Protocol differences: TCP is connection-oriented (handshake), UDP is connectionless (no handshake).
+
+TCP scanning: Uses TCP handshakes to determine state. Typical scan types: SYN (half-open), Connect (completes handshake), ACK, FIN, Xmas, NULL (varied detection/evasion and different OS behaviors). Responses are usually reliable indicators (SYN/ACK = open, RST = closed).
+
+UDP scanning: Nmap sends UDP packets (often empty or protocol-specific). If the host replies with ICMP Port Unreachable, the port is closed. If there’s an expected UDP response (or no response), the port may be open or filtered. Because many services don’t respond and ICMP replies may be rate-limited or filtered, UDP scans are slower and produce more false positives/uncertainty.
+
+Practical: TCP scans are generally faster and more definitive; UDP scanning is necessary for services like DNS (53), SNMP (161), or other datagram services but is noisier and slower.
+
+5) How can open ports be secured?
+Practical steps to secure open ports and the services behind them:
+
+Minimize exposed services: Close ports for unnecessary services (stop/disable daemons).
+Patch/upgrade: Keep services and OS updated to fix known vulnerabilities.
+
+Network controls: Use firewalls and access control lists to restrict which IPs can reach a port (least privilege).
+
+Authentication & encryption: Require strong auth, use TLS/SSH/VPNs so even if reachable the traffic is protected.
+
+Bind to localhost or internal interfaces: Only listen on needed interfaces (e.g., 127.0.0.1 for local-only services).
+
+Use VPNs or jump hosts for admin interfaces rather than exposing them directly
+Rate-limiting / connection limits to slow brute-force attempts.
+
+Intrusion detection/prevention (IDS/IPS) and logging/monitoring to catch abuse.
+
+Harden configurations: Remove default credentials, disable unnecessary features, enforce strong ciphers.
+
+Port-knocking or single-packet authorization for highly sensitive services (adds obscurity, but not a replacement for real controls).
+
+Network segmentation: Isolate services so compromise of one port/service doesn’t give global access.
+
+6) What is a firewall’s role regarding ports?
+A firewall controls network traffic between interfaces/networks based on rules. Regarding ports it can:
+
+Allow/deny traffic to/from specific ports and protocols (e.g., allow TCP/443, deny TCP/3389 from Internet).
+
+Stateful inspection: Track connection state and allow return traffic only for established sessions.
+
+NAT & port forwarding: Translate and forward external ports to internal machines (hiding internal topology).
+
+Rate limiting & NAT timeouts: Reduce scanning effectiveness and some DoS vectors.
+
+Application-layer filtering (next-gen firewalls): Make decisions based on application identity or content, not just port numbers.
+A good firewall implementation reduces exposed ports to exactly what is needed and logs/alerts on suspicious access attempts.
+
+7) What is a port scan and why do attackers perform it?
+
+Port scan: An automated or manual process of probing a host (or range of hosts) to discover which ports are open, closed, or filtered. Tools like Nmap are commonly used.
+
+Why attackers do it: Reconnaissance — to map reachable services, identify versions and misconfigurations, find vulnerable services to exploit, identify pivot points or entry vectors, and prioritize targets. Port scanning tells an attacker which doors to try next.
+
+8) How does Wireshark complement port scanning?
+Wireshark is a packet-capture and protocol analyzer. It complements port scanning by:
+
+Verifying traffic: Capture the actual packets exchanged during scans to confirm responses (e.g., see the SYN/ACK or ICMP messages).
+
+Debugging services: Inspect application-layer payloads (HTTP, DNS, SMTP) to verify behavior, banners, and protocol anomalies.
+
+Detecting evasions and crafted packets: See malformed or stealthy scan patterns that tools might use (XMAS, NULL, fragmented packets).
+
+Timing / retransmission analysis: Reveal rate-limiting, dropped packets, or network behavior that might cause false positives in scans.
+
+Forensics & IDS tuning: Use captures to tune IDS/IPS signatures and to investigate suspicious scan activity with exact packet evidence.
+In short: Nmap finds where and what; Wireshark shows exactly what was sent and received, which helps confirmation, troubleshooting, and deeper analysis
